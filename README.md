@@ -36,6 +36,12 @@ core.area.AreaResize(clip clip, int width, int height[, float gamma=2.2])
 
 * Add parameter for gamma corrected.
 
+## TODO List
+
+* Fix bug for special target size
+  * For YUV 8bit and YUV 16bit, 1920x1080 -> 1200x700, output is abnormal
+  * For RGB 8bit, 1920x1080 -> 1200x700, crash
+
 ## Compilation
 
 ```
