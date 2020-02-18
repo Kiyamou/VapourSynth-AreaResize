@@ -22,6 +22,10 @@
 #include <string>
 #include <memory>
 
+#if defined(_MSC_VER)
+#include <ppl.h>
+#endif
+
 #include "VapourSynth.h"
 #include "VSHelper.h"
 
@@ -53,7 +57,11 @@ static bool ResizeHorizontalPlanar(const VSFrameRef* src, VSFrameRef* dst, const
 	int src_height = vsapi->getFrameHeight(src, plane);
 	int dst_width = vsapi->getFrameWidth(dst, plane);
 
+#if defined(_MSC_VER)
+	Concurrency::parallel_for(0, (int)src_height, [&](int curPixel)
+#else
 	for (int curPixel = 0; curPixel < src_height; curPixel++)
+#endif
 	{
 		const T* curSrcp = srcp + (src_stride * curPixel);  // same as "srcp += src_stride"
 		T* curBuff = dstp + (dst_width * curPixel);
@@ -93,7 +101,11 @@ static bool ResizeHorizontalPlanar(const VSFrameRef* src, VSFrameRef* dst, const
 			T pixelValue = (T)(pixel * invert_den);
 			curBuff[index] = pixelValue;
 		}
+#if defined(_MSC_VER)
+	});
+#else
 	}
+#endif
 
 	return true;
 }
@@ -110,7 +122,11 @@ static bool ResizeVerticalPlanar(const VSFrameRef* src, VSFrameRef* dst, const T
 	int dst_width = vsapi->getFrameWidth(dst, plane);
 	int dst_height = vsapi->getFrameHeight(dst, plane);
 
+#if defined(_MSC_VER)
+	Concurrency::parallel_for(0, (int)dst_width, [&](int curPixel)
+#else
 	for (int curPixel = 0; curPixel < dst_width; curPixel++)
+#endif
 	{
 		const T* curSrcp = srcp + curPixel;
 		T* curDstp = dstp + curPixel;
@@ -150,7 +166,11 @@ static bool ResizeVerticalPlanar(const VSFrameRef* src, VSFrameRef* dst, const T
 			T pixelValue = (T)(pixel * invert_den);
 			curDstp[index] = pixelValue;
 		}
+#if defined(_MSC_VER)
+	});
+#else
 	}
+#endif
 
 	return true;
 }
@@ -175,7 +195,11 @@ static bool ResizeHorizontalRGB(const VSFrameRef* src, VSFrameRef* dst, const T*
 	double invert_den_hun = scale / (double)den;
 
 	const int ps = 3;
+#if defined(_MSC_VER)
+	Concurrency::parallel_for(0, (int)src_height, [&](int curPixel)
+#else
 	for (int curPixel = 0; curPixel < src_height; curPixel++)
+#endif
 	{
 		const T* curSrcp = srcp + (src_stride * curPixel * ps);
 		T* curBuff = dstp + (dst_width * curPixel * ps);
@@ -224,7 +248,11 @@ static bool ResizeHorizontalRGB(const VSFrameRef* src, VSFrameRef* dst, const T*
 			curBuff[index + 1] = greenValue;
 			curBuff[index + 2] = redValue;
 		}
+#if defined(_MSC_VER)
+	});
+#else
 	}
+#endif
 
 	return true;
 }
@@ -249,7 +277,11 @@ static bool ResizeVerticalRGB(const VSFrameRef* src, VSFrameRef* dst, const T* s
 	double invert_den_hun = scale / (double)den;
 
 	const int ps = 3;
+#if defined(_MSC_VER)
+	Concurrency::parallel_for(0, (int)dst_width, [&](int curPixel)
+#else
 	for (int curPixel = 0; curPixel < dst_width; curPixel++)
+#endif
 	{
 		const T* curSrcp = srcp + curPixel * ps;
 		T* curDstp = dstp + curPixel * ps;
@@ -298,7 +330,11 @@ static bool ResizeVerticalRGB(const VSFrameRef* src, VSFrameRef* dst, const T* s
 			curDstp[index + 1] = greenValue;
 			curDstp[index + 2] = redValue;
 		}
+#if defined(_MSC_VER)
+	});
+#else
 	}
+#endif
 
 	return true;
 }
@@ -316,7 +352,11 @@ bool ResizeHorizontalRGB(const VSFrameRef* src, VSFrameRef* dst, const float* sr
 	int dst_width = vsapi->getFrameWidth(dst, 0);
 
 	const int ps = 3;
+#if defined(_MSC_VER)
+	Concurrency::parallel_for(0, (int)src_height, [&](int curPixel)
+#else
 	for (int curPixel = 0; curPixel < src_height; curPixel++)
+#endif
 	{
 		const float* curSrcp = srcp + (src_stride * curPixel * ps);
 		float* curBuff = dstp + (dst_width * curPixel * ps);
@@ -365,7 +405,11 @@ bool ResizeHorizontalRGB(const VSFrameRef* src, VSFrameRef* dst, const float* sr
 			curBuff[index + 1] = greenValue;
 			curBuff[index + 2] = redValue;
 		}
+#if defined(_MSC_VER)
+	});
+#else
 	}
+#endif
 
 	return true;
 }
@@ -383,7 +427,11 @@ bool ResizeVerticalRGB(const VSFrameRef* src, VSFrameRef* dst, const float* srcp
 	int dst_width = vsapi->getFrameWidth(dst, 0);
 
 	const int ps = 3;
+#if defined(_MSC_VER)
+	Concurrency::parallel_for(0, (int)dst_width, [&](int curPixel)
+#else
 	for (int curPixel = 0; curPixel < dst_width; curPixel++)
+#endif
 	{
 		const float* curSrcp = srcp + curPixel * ps;
 		float* curDstp = dstp + curPixel * ps;
@@ -432,7 +480,11 @@ bool ResizeVerticalRGB(const VSFrameRef* src, VSFrameRef* dst, const float* srcp
 			curDstp[index + 1] = greenValue;
 			curDstp[index + 2] = redValue;
 		}
+#if defined(_MSC_VER)
+	});
+#else
 	}
+#endif
 
 	return true;
 }
