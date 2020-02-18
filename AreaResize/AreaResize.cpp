@@ -24,6 +24,8 @@
 
 #if defined(_MSC_VER)
 #include <ppl.h>
+#else
+#include <immintrin.h>
 #endif
 
 #include "VapourSynth.h"
@@ -612,8 +614,13 @@ static void VS_CC AreaFree(void* instanceData, VSCore* core, const VSAPI* vsapi)
 
 	if (d->vi->format->colorFamily == cmRGB && d->vi->format->bytesPerSample <= 2)
 	{
+#if defined(_MSC_VER)
 		delete[] d->linear_LUT;
 		delete[] d->gamma_LUT;
+#else
+		_mm_free(d->linear_LUT);
+		_mm_free(d->gamma_LUT);
+#endif
 	}
 
 	delete d;
@@ -665,39 +672,60 @@ static void VS_CC AreaCreate(const VSMap* in, VSMap* out, void* userData, VSCore
 		if (d->vi->format->bytesPerSample == 1)
 		{
 			int peak = (1 << d->vi->format->bitsPerSample) - 1;
-
+#if defined(_MSC_VER)
 			double* linear_LUT = new (std::nothrow) double[peak + 1];
-			double* gamma_LUT = new (std::nothrow) double[RGB_PIXEL_RANGE_EXTENDED];
+			double* gamma_LUT  = new (std::nothrow) double[RGB_PIXEL_RANGE_EXTENDED];
 
 			for (int i = 0; i < peak + 1; i++)
 			{
 				linear_LUT[i] = pow(((double)i / peak), gamma) * peak;
-				gamma_LUT[i] = pow((((double)i / 100.0) / peak), (1.0 / gamma)) * peak;
+				gamma_LUT[i]  = pow((((double)i / 100.0) / peak), (1.0 / gamma)) * peak;
 			}
 
 			for (int i = peak + 1; i < RGB_PIXEL_RANGE_EXTENDED; i++)
 				gamma_LUT[i] = pow((((double)i / 100.0) / peak), (1.0 / gamma)) * peak;
+#else
+			double* linear_LUT = (double *)_mm_malloc(sizeof(double) * (peak + 1), 64);
+			double* gamma_LUT  = (double *)_mm_malloc(sizeof(double) * RGB_PIXEL_RANGE_EXTENDED, 64);
 
+			for (int i = 0; i < peak + 1; i++)
+			{
+				linear_LUT[i] = pow(((double)i / peak), gamma) * peak;
+				gamma_LUT[i]  = pow((((double)i / 100.0) / peak), (1.0 / gamma)) * peak;
+			}
+
+			for (int i = peak + 1; i < RGB_PIXEL_RANGE_EXTENDED; i++)
+				gamma_LUT[i] = pow((((double)i / 100.0) / peak), (1.0 / gamma)) * peak;
+#endif
 			d->linear_LUT = linear_LUT;
-			d->gamma_LUT = gamma_LUT;
+			d->gamma_LUT  = gamma_LUT;
 		}
 
 		// for 9~16bit RGB
 		else if (d->vi->format->bytesPerSample == 2)
 		{
 			int peak = (1 << d->vi->format->bitsPerSample) - 1;
-
+#if defined(_MSC_VER)
 			double* linear_LUT = new (std::nothrow) double[peak + 1];
-			double* gamma_LUT = new (std::nothrow) double[peak + 1];
+			double* gamma_LUT  = new (std::nothrow) double[peak + 1];
 
 			for (int i = 0; i < peak + 1; i++)
 			{
 				linear_LUT[i] = pow(((double)i / peak), gamma) * peak;
-				gamma_LUT[i] = pow(((double)i / peak), (1.0 / gamma)) * peak;
+				gamma_LUT[i]  = pow(((double)i / peak), (1.0 / gamma)) * peak;
 			}
+#else
+			double* linear_LUT = (double *)_mm_malloc(sizeof(double) * (peak + 1), 64);
+			double* gamma_LUT  = (double *)_mm_malloc(sizeof(double) * (peak + 1), 64);
 
+			for (int i = 0; i < peak + 1; i++)
+			{
+				linear_LUT[i] = pow(((double)i / peak), gamma) * peak;
+				gamma_LUT[i]  = pow(((double)i / peak), (1.0 / gamma)) * peak;
+			}
+#endif
 			d->linear_LUT = linear_LUT;
-			d->gamma_LUT = gamma_LUT;
+			d->gamma_LUT  = gamma_LUT;
 		}
 	}
 
