@@ -32,7 +32,8 @@
 #define RGB_PIXEL_RANGE_EXTENDED 25501 // for 8bit RGB, 25501 = (256 - 1) * 100 + 1
 //#define DOUBLE_ROUND_MAGIC_NUMBER 6755399441055744.0
 
-struct AreaData {
+struct AreaData
+{
     VSNodeRef* node;
     const VSVideoInfo* vi;
     int target_width, target_height;
@@ -40,14 +41,15 @@ struct AreaData {
     double* gamma_LUT;
 };
 
-static int gcd(int x, int y) {
+static int gcd(int x, int y)
+{
     int m = x % y;
     return m == 0 ? y : gcd(y, m);
 }
 
 template <typename T>
 static bool ResizeHorizontalPlanar(const VSFrameRef* src, VSFrameRef* dst, const T* srcp, T* VS_RESTRICT dstp,
-    int src_stride, int dst_stride, int plane, const AreaData* const VS_RESTRICT d, const VSAPI* vsapi) noexcept
+    int src_stride, int dst_stride, int plane, const VSAPI* vsapi) noexcept
 {
     int gcd_h = gcd(vsapi->getFrameWidth(src, plane), vsapi->getFrameWidth(dst, plane));
     int num = vsapi->getFrameWidth(dst, plane) / gcd_h;
@@ -112,7 +114,7 @@ static bool ResizeHorizontalPlanar(const VSFrameRef* src, VSFrameRef* dst, const
 
 template <typename T>
 static bool ResizeVerticalPlanar(const VSFrameRef* src, VSFrameRef* dst, const T* srcp, T* VS_RESTRICT dstp,
-    int src_stride, int dst_stride, int plane, const AreaData* const VS_RESTRICT d, const VSAPI* vsapi) noexcept
+    int src_stride, int dst_stride, int plane, const VSAPI* vsapi) noexcept
 {
     int gcd_v = gcd(vsapi->getFrameHeight(src, plane), vsapi->getFrameHeight(dst, plane));
     int num = vsapi->getFrameHeight(dst, plane) / gcd_v;
@@ -502,8 +504,8 @@ static void process(const VSFrameRef* src, VSFrameRef* dst, VSFrameRef* buf, con
             int dst_stride = vsapi->getStride(dst, plane) / sizeof(T);
             int buf_stride = vsapi->getStride(buf, plane) / sizeof(T);
 
-            ResizeHorizontalPlanar<T>(src, dst, srcp, buff, src_stride, buf_stride, plane, d, vsapi);
-            ResizeVerticalPlanar<T>(src, dst, (const T*)buff, dstp, buf_stride, dst_stride, plane, d, vsapi);
+            ResizeHorizontalPlanar<T>(src, dst, srcp, buff, src_stride, buf_stride, plane, vsapi);
+            ResizeVerticalPlanar<T>(src, dst, (const T*)buff, dstp, buf_stride, dst_stride, plane, vsapi);
         }
     }
     else
