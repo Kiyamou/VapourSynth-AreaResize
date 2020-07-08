@@ -492,7 +492,9 @@ bool ResizeVerticalRGB(const VSFrameRef* src, VSFrameRef* dst, const float* srcp
 }
 
 template <typename T>
-static void process(const VSFrameRef* src, VSFrameRef* dst, VSFrameRef* buf, const AreaData* const VS_RESTRICT d, const VSAPI* vsapi) noexcept {
+static void process(const VSFrameRef* src, VSFrameRef* dst, VSFrameRef* buf,
+    const AreaData* const VS_RESTRICT d, const VSAPI* vsapi) noexcept
+{
     if (d->vi->format->colorFamily == cmYUV)
     {
         for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
@@ -571,7 +573,8 @@ static void process(const VSFrameRef* src, VSFrameRef* dst, VSFrameRef* buf, con
     }
 }
 
-static void VS_CC AreaInit(VSMap* in, VSMap* out, void** instanceData, VSNode* node, VSCore* core, const VSAPI* vsapi) {
+static void VS_CC AreaInit(VSMap* in, VSMap* out, void** instanceData, VSNode* node, VSCore* core, const VSAPI* vsapi)
+{
     AreaData* d = static_cast<AreaData*>(*instanceData);
     VSVideoInfo dst_vi = (VSVideoInfo) * (d->vi);
     dst_vi.width = d->target_width;
@@ -579,7 +582,9 @@ static void VS_CC AreaInit(VSMap* in, VSMap* out, void** instanceData, VSNode* n
     vsapi->setVideoInfo(&dst_vi, 1, node);
 }
 
-static const VSFrameRef* VS_CC AreaGetFrame(int n, int activationReason, void** instanceData, void** frameData, VSFrameContext* frameCtx, VSCore* core, const VSAPI* vsapi) {
+static const VSFrameRef* VS_CC AreaGetFrame(int n, int activationReason, void** instanceData, void** frameData,
+    VSFrameContext* frameCtx, VSCore* core, const VSAPI* vsapi)
+{
     const AreaData* d = static_cast<const AreaData*>(*instanceData);
 
     if (activationReason == arInitial)
@@ -608,7 +613,8 @@ static const VSFrameRef* VS_CC AreaGetFrame(int n, int activationReason, void** 
     return nullptr;
 }
 
-static void VS_CC AreaFree(void* instanceData, VSCore* core, const VSAPI* vsapi) {
+static void VS_CC AreaFree(void* instanceData, VSCore* core, const VSAPI* vsapi)
+{
     AreaData* d = static_cast<AreaData*>(instanceData);
     vsapi->freeNode(d->node);
 
@@ -621,7 +627,8 @@ static void VS_CC AreaFree(void* instanceData, VSCore* core, const VSAPI* vsapi)
     delete d;
 }
 
-static void VS_CC AreaCreate(const VSMap* in, VSMap* out, void* userData, VSCore* core, const VSAPI* vsapi) {
+static void VS_CC AreaCreate(const VSMap* in, VSMap* out, void* userData, VSCore* core, const VSAPI* vsapi)
+{
     std::unique_ptr<AreaData> d = std::make_unique<AreaData>();
     int err;
 
@@ -643,13 +650,16 @@ static void VS_CC AreaCreate(const VSMap* in, VSMap* out, void* userData, VSCore
             throw std::string{ "Only constant format 8-16 bits integer and 32 bits float input supported." };
 
         if (d->target_width < 1 || d->target_height < 1)
-            throw std::string{ "Target width/height must be 1 or higher." };
+            throw std::string{ "Target width and height must be 1 or higher." };
 
-        if ((d->target_width & 1) || (d->target_height & 1))
+        if (d->target_width & 1 || d->target_height & 1)
             throw std::string{ "Target width and height requires mod 2." };
 
         if (d->vi->width < d->target_width || d->vi->height < d->target_height)
             throw std::string{ "This filter is only for downscale." };
+
+        if (d->vi->format->colorFamily == cmYUV && d->vi->format->sampleType == stInteger && d->target_width % 32)
+            throw std::string{ "For 8-16 bits YUV format, target width must be divisible by 32." };
 
         if (gamma <= 0)
             throw std::string{ "Gamma must be greater than 0." };
@@ -706,10 +716,8 @@ static void VS_CC AreaCreate(const VSMap* in, VSMap* out, void* userData, VSCore
     vsapi->createFilter(in, out, "AreaResize", AreaInit, AreaGetFrame, AreaFree, fmParallel, 0, d.release(), core);
 }
 
-//////////////////////////////////////////
-// Init
-
-VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin* plugin) {
+VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin* plugin)
+{
     configFunc("com.vapoursynth.arearesize", "area", "area average downscaler plugin", VAPOURSYNTH_API_VERSION, 1, plugin);
 
     registerFunc("AreaResize",

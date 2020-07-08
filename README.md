@@ -2,7 +2,7 @@
 
 ## Description
 
-AreaResize is an area average downscale resizer plugin for VapourSynth. Support 8-16 bit and 32 bit sample type. Support YUV and RGB color family. 
+AreaResize is an area average downscale resizer plugin for VapourSynth. Support 8-16 bit and 32 bit sample type. Support YUV and RGB color family.
 
 Downscaling in 8-16 bit RGB is also gamma corrected.
 
@@ -39,7 +39,8 @@ core.area.AreaResize(clip clip, int width, int height[, float gamma=2.2])
 ## TODO List
 
 * Fix bug for special target size
-  * For YUV 8bit and YUV 16bit, 1920x1080 -> 1200x700, output is abnormal
+  * For YUV 8bit and YUV 16bit, if target height can't be divisible by 32, output is abnormal
+    * I haven't found reason, so add an exception handling
   * For RGB 8bit, 1920x1080 -> 1200x700, crash
 
 ## Compilation
