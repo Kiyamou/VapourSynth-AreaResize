@@ -495,81 +495,104 @@ template <typename T>
 static void process(const VSFrameRef* src, VSFrameRef* dst, VSFrameRef* buf,
     const AreaData* const VS_RESTRICT d, const VSAPI* vsapi) noexcept
 {
-    if (d->vi->format->colorFamily == cmYUV)
+    switch (d->vi->format->colorFamily)
     {
-        for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
+        case cmYUV:
         {
-            const T* srcp = reinterpret_cast<const T*>(vsapi->getReadPtr(src, plane));
-            T* VS_RESTRICT dstp = reinterpret_cast<T*>(vsapi->getWritePtr(dst, plane));
-            T* VS_RESTRICT buff = reinterpret_cast<T*>(vsapi->getWritePtr(buf, plane));
-            int src_stride = vsapi->getStride(src, plane) / sizeof(T);
-            int dst_stride = vsapi->getStride(dst, plane) / sizeof(T);
-            int buf_stride = vsapi->getStride(buf, plane) / sizeof(T);
-
-            ResizeHorizontalPlanar<T>(src, dst, srcp, buff, src_stride, buf_stride, plane, vsapi);
-            ResizeVerticalPlanar<T>(src, dst, (const T*)buff, dstp, buf_stride, dst_stride, plane, vsapi);
-        }
-    }
-    else
-    {
-        const T* srcpR = reinterpret_cast<const T*>(vsapi->getReadPtr(src, 0));
-        const T* srcpG = reinterpret_cast<const T*>(vsapi->getReadPtr(src, 1));
-        const T* srcpB = reinterpret_cast<const T*>(vsapi->getReadPtr(src, 2));
-        int src_stride = vsapi->getStride(src, 0) / sizeof(T);
-        int buf_stride = vsapi->getStride(buf, 0) / sizeof(T);
-        int dst_stride = vsapi->getStride(dst, 0) / sizeof(T);
-
-        // Interleaved
-        T* srcInterleaved = new (std::nothrow) T[d->vi->width * d->vi->height * 3];
-        T* dstInterleaved = new (std::nothrow) T[d->target_width * d->target_height * 3];
-        T* bufInterleaved = new (std::nothrow) T[d->target_width * d->vi->height * 3];
-
-        // change to Interleaved
-        int src_width = vsapi->getFrameWidth(src, 0);
-        int src_height = vsapi->getFrameHeight(src, 0);
-
-        for (int y = 0; y < src_height; y++)
-        {
-            for (int x = 0; x < src_width; x++)
+            for (int plane = 0; plane < d->vi->format->numPlanes; plane++)
             {
-                const unsigned pos = (x + y * src_width) * 3;
-                srcInterleaved[pos] = srcpB[x];
-                srcInterleaved[pos + 1] = srcpG[x];
-                srcInterleaved[pos + 2] = srcpR[x];
+                const T* srcp = reinterpret_cast<const T*>(vsapi->getReadPtr(src, plane));
+                T* VS_RESTRICT dstp = reinterpret_cast<T*>(vsapi->getWritePtr(dst, plane));
+                T* VS_RESTRICT buff = reinterpret_cast<T*>(vsapi->getWritePtr(buf, plane));
+                int src_stride = vsapi->getStride(src, plane) / sizeof(T);
+                int dst_stride = vsapi->getStride(dst, plane) / sizeof(T);
+                int buf_stride = vsapi->getStride(buf, plane) / sizeof(T);
+
+                ResizeHorizontalPlanar<T>(src, dst, srcp, buff, src_stride, buf_stride, plane, vsapi);
+                ResizeVerticalPlanar<T>(src, dst, (const T*)buff, dstp, buf_stride, dst_stride, plane, vsapi);
             }
-            srcpB += src_stride;
-            srcpG += src_stride;
-            srcpR += src_stride;
+            
+            break;
         }
-
-        ResizeHorizontalRGB<T>(src, dst, (const T*)srcInterleaved, bufInterleaved, src_stride, buf_stride, d, vsapi);
-        ResizeVerticalRGB<T>(src, dst, (const T*)bufInterleaved, dstInterleaved, buf_stride, dst_stride, d, vsapi);
-
-        T* VS_RESTRICT dstpR = reinterpret_cast<T*>(vsapi->getWritePtr(dst, 0));
-        T* VS_RESTRICT dstpG = reinterpret_cast<T*>(vsapi->getWritePtr(dst, 1));
-        T* VS_RESTRICT dstpB = reinterpret_cast<T*>(vsapi->getWritePtr(dst, 2));
-
-        //change back from Interleaved
-        int target_height = d->target_height;
-        int target_width = d->target_width;
-
-        for (int y = 0; y < target_height; y++)
+            
+        case cmGray:
         {
-            for (int x = 0; x < target_width; x++)
-            {
-                const unsigned pos = (x + y * target_width) * 3;
-                dstpB[x] = dstInterleaved[pos];
-                dstpG[x] = dstInterleaved[pos + 1];
-                dstpR[x] = dstInterleaved[pos + 2];
-            }
-            dstpB += dst_stride;
-            dstpG += dst_stride;
-            dstpR += dst_stride;
+            const T* srcp = reinterpret_cast<const T*>(vsapi->getReadPtr(src, 0));
+            T* VS_RESTRICT dstp = reinterpret_cast<T*>(vsapi->getWritePtr(dst, 0));
+            T* VS_RESTRICT buff = reinterpret_cast<T*>(vsapi->getWritePtr(buf, 0));
+            int src_stride = vsapi->getStride(src, 0) / sizeof(T);
+            int dst_stride = vsapi->getStride(dst, 0) / sizeof(T);
+            int buf_stride = vsapi->getStride(buf, 0) / sizeof(T);
+
+            ResizeHorizontalPlanar<T>(src, dst, srcp, buff, src_stride, buf_stride, 0, vsapi);
+            ResizeVerticalPlanar<T>(src, dst, (const T*)buff, dstp, buf_stride, dst_stride, 0, vsapi);
+            
+            break;
         }
 
-        delete[] srcInterleaved;
-        delete[] bufInterleaved;
-        delete[] dstInterleaved;
+        case cmRGB:
+        {
+            const T* srcpR = reinterpret_cast<const T*>(vsapi->getReadPtr(src, 0));
+            const T* srcpG = reinterpret_cast<const T*>(vsapi->getReadPtr(src, 1));
+            const T* srcpB = reinterpret_cast<const T*>(vsapi->getReadPtr(src, 2));
+            int src_stride = vsapi->getStride(src, 0) / sizeof(T);
+            int buf_stride = vsapi->getStride(buf, 0) / sizeof(T);
+            int dst_stride = vsapi->getStride(dst, 0) / sizeof(T);
+
+            // Interleaved
+            T* srcInterleaved = new (std::nothrow) T[d->vi->width * d->vi->height * 3];
+            T* dstInterleaved = new (std::nothrow) T[d->target_width * d->target_height * 3];
+            T* bufInterleaved = new (std::nothrow) T[d->target_width * d->vi->height * 3];
+
+            // change to Interleaved
+            int src_width = vsapi->getFrameWidth(src, 0);
+            int src_height = vsapi->getFrameHeight(src, 0);
+
+            for (int y = 0; y < src_height; y++)
+            {
+                for (int x = 0; x < src_width; x++)
+                {
+                    const unsigned pos = (x + y * src_width) * 3;
+                    srcInterleaved[pos] = srcpB[x];
+                    srcInterleaved[pos + 1] = srcpG[x];
+                    srcInterleaved[pos + 2] = srcpR[x];
+                }
+                srcpB += src_stride;
+                srcpG += src_stride;
+                srcpR += src_stride;
+            }
+
+            ResizeHorizontalRGB<T>(src, dst, (const T*)srcInterleaved, bufInterleaved, src_stride, buf_stride, d, vsapi);
+            ResizeVerticalRGB<T>(src, dst, (const T*)bufInterleaved, dstInterleaved, buf_stride, dst_stride, d, vsapi);
+
+            T* VS_RESTRICT dstpR = reinterpret_cast<T*>(vsapi->getWritePtr(dst, 0));
+            T* VS_RESTRICT dstpG = reinterpret_cast<T*>(vsapi->getWritePtr(dst, 1));
+            T* VS_RESTRICT dstpB = reinterpret_cast<T*>(vsapi->getWritePtr(dst, 2));
+
+            //change back from Interleaved
+            int target_height = d->target_height;
+            int target_width = d->target_width;
+
+            for (int y = 0; y < target_height; y++)
+            {
+                for (int x = 0; x < target_width; x++)
+                {
+                    const unsigned pos = (x + y * target_width) * 3;
+                    dstpB[x] = dstInterleaved[pos];
+                    dstpG[x] = dstInterleaved[pos + 1];
+                    dstpR[x] = dstInterleaved[pos + 2];
+                }
+                dstpB += dst_stride;
+                dstpG += dst_stride;
+                dstpR += dst_stride;
+            }
+
+            delete[] srcInterleaved;
+            delete[] bufInterleaved;
+            delete[] dstInterleaved;
+
+            break;
+        }
     }
 }
 
@@ -658,8 +681,8 @@ static void VS_CC AreaCreate(const VSMap* in, VSMap* out, void* userData, VSCore
         if (d->vi->width < d->target_width || d->vi->height < d->target_height)
             throw std::string{ "This filter is only for downscale." };
 
-        if (d->vi->format->colorFamily == cmYUV && d->vi->format->sampleType == stInteger && d->target_width % 32)
-            throw std::string{ "For 8-16 bits YUV format, target width must be divisible by 32." };
+        if (d->vi->format->colorFamily != cmRGB && d->vi->format->sampleType == stInteger && d->target_width % 32)
+            throw std::string{ "For 8-16 bits Gray or YUV format, target width must be divisible by 32." };
 
         if (gamma <= 0)
             throw std::string{ "Gamma must be greater than 0." };
