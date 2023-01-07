@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '.gitignore'
+      - '.gitattributes'
+      - '.gitmodules'
+      - '**/LICENSE'
+      - '**.md'
+
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - '.gitignore'
+      - '.gitattributes'
+      - '.gitmodules'
+      - '**/LICENSE'
+      - '**.md'
+
+  # Manual trigger
+  workflow_dispatch:
+
+env:
+  VAPOURSYNTH_VERSION: R61
+
+jobs:
+  build-linux:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: configure
+        run: |
+          wget https://github.com/vapoursynth/vapoursynth/archive/refs/tags/${{env.VAPOURSYNTH_VERSION}}.tar.gz
+          tar -xzvf ${{env.VAPOURSYNTH_VERSION}}.tar.gz vapoursynth-${{env.VAPOURSYNTH_VERSION}}/include
+          mv vapoursynth-${{env.VAPOURSYNTH_VERSION}}/include/VapourSynth.h AreaResize/VapourSynth.h
+          mv vapoursynth-${{env.VAPOURSYNTH_VERSION}}/include/VSHelper.h AreaResize/VSHelper.h
+
+      - name: build
+        run: g++ -shared -fPIC -O2 AreaResize/AreaResize.cpp -o AreaResize.so
+
+      - name: strip
+        run: strip AreaResize.so
+
+      - name: upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-vapoursynth-arearesize
+          path: AreaResize.so
+
+  build-windows:
+
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: configure
+        run:  |
+          curl -s -L https://github.com/vapoursynth/vapoursynth/archive/refs/tags/${{env.VAPOURSYNTH_VERSION}}.tar.gz -o ${{env.VAPOURSYNTH_VERSION}}.tar.gz
+          tar -xzvf ${{env.VAPOURSYNTH_VERSION}}.tar.gz vapoursynth-${{env.VAPOURSYNTH_VERSION}}/include
+          mv vapoursynth-${{env.VAPOURSYNTH_VERSION}}/include/VapourSynth.h AreaResize/VapourSynth.h
+          mv vapoursynth-${{env.VAPOURSYNTH_VERSION}}/include/VSHelper.h AreaResize/VSHelper.h
+
+      - name: build
+        run: x86_64-w64-mingw32-g++ -shared -static -O2 AreaResize/AreaResize.cpp -o AreaResize.dll
+
+      - name: strip
+        run: strip AreaResize.dll
+
+      - name: upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-vapoursynth-arearesize
+          path: AreaResize.dll
