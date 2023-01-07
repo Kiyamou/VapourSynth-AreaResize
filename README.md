@@ -1,5 +1,7 @@
 # VapourSynth-AreaResize
 
+[![Build Status](https://github.com/Kiyamou/VapourSynth-AreaResize/workflows/CI/badge.svg)](https://github.com/Kiyamou/VapourSynth-AreaResize/actions/workflows/CI.yml)
+
 ## Description
 
 AreaResize is an area average downscale resizer plugin for VapourSynth. Support 8-16 bit and 32 bit sample type. Support Gray, YUV and RGB color family.
